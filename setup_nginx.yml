@@ -1,7 +1,0 @@
----
-
-- name: setup the nginx
-  hosts: all
-  become: true
-  vars:
-    username: "
