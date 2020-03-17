@@ -1,0 +1,66 @@
+---
+- name: Run the equivalent of "apt-get update" as a separate step
+  apt:
+    update_cache: yes
+
+- name: Install a list of packages
+  apt: 
+    update_cache: yes
+    pkg:
+      - git
+      - libpcre3
+      - libpcre3-dev
+      - zlib1g-dev
+      - openssl
+      - libssl-dev
+      - build-essential
+      - python3-pip
+      - libgd-dev
+      - libgeoip-dev
+      - libgoogle-perftools-dev
+      - libatomic-ops-dev
+      - libxml2-dev 
+      - libxslt1-dev
+
+- name: Create a directory if it does not exist
+  file:
+    path: /data/service/src/
+    state: directory
+    mode: '0755'
+
+- name: Add the user nginx
+  user:
+    name: nginx
+    shell: /sbin/nologin
+
+- name: Unarchive a file that needs to be downloaded
+  unarchive:
+    src: http://nginx.org/download/nginx-1.16.1.tar.gz 
+    dest: /data/service/src/
+    remote_src: yes
+
+- name: compiler nginx
+  shell: "./configure --prefix=/data/service/nginx --user=nginx --group=nginx --with-threads --with-file-aio --with-http_ssl_module --with-http_v2_module --with-http_realip_module --with-http_addition_module --with-http_xslt_module --with-http_xslt_module=dynamic --with-http_image_filter_module --with-http_image_filter_module=dynamic --with-http_geoip_module --with-http_geoip_module=dynamic --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_auth_request_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_slice_module --with-http_stub_status_module --with-stream --with-stream=dynamic --with-stream_ssl_module --with-stream_realip_module --with-stream_geoip_module --with-stream_geoip_module=dynamic --with-stream_ssl_preread_module --with-google_perftools_module --with-compat --with-pcre --with-libatomic && make && make install"
+  args:
+    chdir: "/data/service/src/nginx-1.16.1"
+    creates: "/data/service/nginx"
+#  ignore_errors: true
+
+
+- name: Create a directory if it does not exist
+  file: path={{ item }} state=directory
+  with_items:
+    - '/data/service/nginx/conf/vhost'
+    - '/data/service/nginx/conf/tcp'
+    - '/data/service/nginx/conf/cert'
+
+- name: copy conf file
+  copy: 
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+    mode: "{{item.mode}}"
+  ignore_errors: true
+  with_items:
+    - {src: 'fastcgi_sample.conf', dest: '/data/service/nginx/conf/', mode: '0644'}
+    - {src: 'nginx.conf', dest: '/data/service/nginx/conf/', mode: '0644'}
+    - {src: 'nginx.sh', dest: '/etc/profile.d/', mode: '0644'}

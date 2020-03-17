@@ -1,0 +1,74 @@
+---
+- name: Run the equivalent of "apt-get update" as a separate step
+  apt:
+    update_cache: yes
+
+- name: Install a list of packages
+  apt:
+    update_cache: yes
+    pkg:
+      - make
+      - cmake
+      - gcc
+      - g++
+      - bison
+      - libncurses5-dev
+      - build-essential
+      - libssl-dev
+      - libaio1
+
+
+- name: Create a directory if it does not exist
+  file:
+    path: /data/service/src/
+    state: directory
+    mode: '0755'
+
+
+- name: Add the user 'mysql'
+  user:
+    name: mysql
+    shell: /sbin/nologin
+
+
+- name: Unarchive a file that needs to be downloaded
+  unarchive:
+    src: https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.19-linux-glibc2.12-x86_64.tar.xz
+    dest: /data/service/mysql
+    remote_src: yes
+
+
+- name: Template a file to /etc/my.conf
+  template:
+    src: my.cnf.j2
+    dest: /etc/my.cnf
+    owner: root
+    group: root
+    mode: '0600'
+
+
+- name: Template a file to /etc/profile.d/mysql.sh
+  template:
+    src: mysql.sh.j2
+    dest: /etc/profile.d/
+    owner: root
+    group: root
+    mode: '0644'
+
+
+- name: initialize mysql
+  shell: "bin/mysqld --initialize-insecure --user=mysql  --basedir=/data/service/mysql --datadir=/data/service/mysql/data/ --log-bin"
+  args:
+    chdir: "/data/service/mysql"
+    creates: "/data/service/mysql"
+  ignore_errors: true
+
+
+- name: Ensure the default Apache port is 8080
+  lineinfile:
+    path: /etc/my.cnf
+    regexp: '^[client]'
+    insertafter: '^#Listen '
+    line: Listen 8080
+
+
