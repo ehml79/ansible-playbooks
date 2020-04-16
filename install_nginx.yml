@@ -1,6 +1,0 @@
----
-- hosts: vm
-  become: true
-  roles:
-    - nginx
-
